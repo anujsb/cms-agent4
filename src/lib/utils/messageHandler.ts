@@ -2,9 +2,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { UserRepository } from "../repositories/userRepository";
 import { detectOrderIntent, detectIncidentIntent, detectRenewalIntent, extractRenewalDetails, detectOfferIntent } from "../utils/intentDetection";
 import { preparePrompt, cleanResponse } from "../utils/promptUtils";
+import { handleIncidentCreation, handleInitialTroubleshooting, handleOrderConfirmation, handleRenewalRequest } from "../../app/api/chat/route";
+import { OfferRepository } from "../repositories/offerRepository";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const userRepository = new UserRepository();
+const offerRepository = new OfferRepository();
 
 export async function handleWhatsAppMessage(phoneNumber: string, message: string) {
   try {
@@ -70,4 +73,26 @@ export async function handleWhatsAppMessage(phoneNumber: string, message: string
     console.error('Error handling WhatsApp message:', error);
     return "Sorry, I'm having trouble processing your request. Please try again later.";
   }
+}
+
+function formatOffers(offers: any[], isPersonalized: boolean) {
+  if (offers.length === 0) {
+    return "I'm sorry, but there are no offers available at the moment.";
+  }
+
+  let message = isPersonalized 
+    ? "Here are your personalized offers:\n\n"
+    : "Here are our current offers:\n\n";
+
+  offers.forEach((offer, index) => {
+    message += `${index + 1}. ${offer.name}\n`;
+    message += `   Description: ${offer.description}\n`;
+    message += `   Discount: ${offer.discountPercentage}%\n`;
+    message += `   Product: ${offer.productType}\n`;
+    message += `   Plan: ${offer.planType}\n`;
+    message += `   Valid until: ${new Date(offer.endDate).toLocaleDateString()}\n\n`;
+  });
+
+  message += "Would you like to know more about any of these offers?";
+  return message;
 }

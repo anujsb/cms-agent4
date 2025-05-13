@@ -120,7 +120,7 @@ function extractRenewalDetails(message: string): { productName: string; plan: st
 }
 
 // Handle incident creation
-async function handleIncidentCreation(userId: string, incidentIntent: ReturnType<typeof detectIncidentIntent>) {
+export async function handleIncidentCreation(userId: string, incidentIntent: ReturnType<typeof detectIncidentIntent>) {
   try {
     const incidentId = await userRepository.addIncident(
       userId,
@@ -158,7 +158,7 @@ async function handleIncidentCreation(userId: string, incidentIntent: ReturnType
 }
 
 // New function to handle initial troubleshooting before creating an incident
-function handleInitialTroubleshooting(incidentIntent: ReturnType<typeof detectIncidentIntent>) {
+export function handleInitialTroubleshooting(incidentIntent: ReturnType<typeof detectIncidentIntent>) {
   let reply = `It seems like you're experiencing an issue.`;
   
   // Add appropriate troubleshooting steps based on the category
@@ -184,7 +184,7 @@ function handleInitialTroubleshooting(incidentIntent: ReturnType<typeof detectIn
 }
 
 // Handle order confirmation
-async function handleOrderConfirmation(userId: string, message: string) {
+export async function handleOrderConfirmation(userId: string, message: string) {
   try {
     const productMatch = message.match(/product:\s*([^,]+)/i);
     const planMatch = message.match(/plan:\s*([^,]+)/i);
@@ -216,7 +216,7 @@ async function handleOrderConfirmation(userId: string, message: string) {
 }
 
 // Handle renewal request
-async function handleRenewalRequest(userId: string, renewalDetails: ReturnType<typeof extractRenewalDetails>) {
+export async function handleRenewalRequest(userId: string, renewalDetails: ReturnType<typeof extractRenewalDetails>) {
   if (!renewalDetails) return null;
   
   try {
@@ -225,7 +225,7 @@ async function handleRenewalRequest(userId: string, renewalDetails: ReturnType<t
       userId,
       productName: renewalDetails.productName,
       plan: renewalDetails.plan,
-      status: 'pending'
+      status: 'Pending'
     });
 
     return {

@@ -39,7 +39,7 @@ interface Order {
   userId: string;
   productName: string;
   plan: string;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: 'Active' | 'Expired' | 'Pending';
   createdAt: Date;
 }
 
@@ -195,21 +195,23 @@ export class UserRepository {
     };
   }
 
-  // Helper method to map order status from DB to expected values
-  private mapOrderStatus(status: string): string {
+  // Map old status values to new ones
+  private mapOrderStatus(status: string): 'Active' | 'Expired' | 'Pending' {
     switch (status) {
-      case 'InProgress': return 'Active';
-      case 'Completed': return 'Expired';
-      case 'Pending': return 'Pending';
-      default: return status;
+      case 'InProgress':
+        return 'Active';
+      case 'Completed':
+        return 'Expired';
+      default:
+        return 'Pending';
     }
   }
 
   // Helper method to map expected status values to DB values
   private mapToDbOrderStatus(status: 'Active' | 'Expired' | 'Pending'): string {
     switch (status) {
-      case 'Active': return 'InProgress';
-      case 'Expired': return 'Completed';
+      case 'Active': return 'Active';
+      case 'Expired': return 'Expired';
       case 'Pending': return 'Pending';
     }
   }
@@ -232,7 +234,7 @@ export class UserRepository {
       .where(
         and(
           eq(orders.customerId, userId),
-          eq(orders.status, 'InProgress'), // Only active orders
+          eq(orders.status, 'Active'), // Changed from 'InProgress' to 'Active'
           sql`${orders.orderId} IS NOT NULL`
         )
       );
@@ -348,50 +350,17 @@ export class UserRepository {
   }
 
   // Add an order for a user
-  async addOrder(userId: string, productName: string, plan: string, status: 'Active' | 'Expired' | 'Pending', inServiceDate: Date, outServiceDate?: Date) {
-    // Get the customer
-    const customerResults = await db
-      .select({
-        id: customers.customerId,
-      })
-      .from(customers)
-      .where(eq(customers.customerId, userId));
+  async addOrder(userId: string, productName: string, plan: string, status: 'Active' | 'Expired' | 'Pending', inServiceDate: Date) {
+    const orderId = uuidv4();
     
-    if (customerResults.length === 0) {
-      throw new Error('User not found');
-    }
-    
-    // Get or create the product type
-    const productTypeId = await this.getOrCreateProduct(productName);
-    
-    // Create order
-    const orderId = `${userId.substring(0, 6)}-${Math.floor(100 + Math.random() * 900)}`;
     await db.insert(orders).values({
       orderId,
       customerId: userId,
-      status: this.mapToDbOrderStatus(status) as "InProgress" | "Completed" | "Pending",
-      createDate: new Date(),
+      status,
+      createDate: new Date()
     });
-    
-    // Create order product
-    const orderProductId = `OP${Math.floor(1000 + Math.random() * 9000)}`;
-    await db.insert(orderProducts).values({
-      orderProductId,
-      orderId,
-      productTypeId,
-      inServiceDt: inServiceDate,
-      outServiceDt: outServiceDate || null,
-    });
-    
-    // Add plan parameter
-    await db.insert(orderProductParameters).values({
-      orderProductId,
-      productTypeId,
-      name: 'PlanName',
-      value: plan,
-    });
-    
-    return orderProductId; // Return order product ID as the order ID
+
+    return orderId;
   }
 
   // Add an incident for a user
@@ -468,26 +437,33 @@ export class UserRepository {
     if (orderProductResults.length > 0) {
       // Update the order status using the related order ID
       await db.update(orders)
-        .set({ status: dbStatus as "InProgress" | "Completed" | "Pending" })
+        .set({ status: dbStatus as "Active" | "Expired" | "Pending" })
         .where(eq(orders.orderId, orderProductResults[0].orderId!));
     } else {
       // Try updating directly with the order ID
       await db.update(orders)
-        .set({ status: dbStatus as "Pending" | "InProgress" | "Completed" })
+        .set({ status: dbStatus as "Pending" | "Active" | "Expired" })
         .where(eq(orders.orderId, orderId));
     }
   }
 
-  async createOrder(orderData: Omit<Order, 'id' | 'createdAt'>): Promise<Order> {
-    const order: Order = {
-      id: crypto.randomUUID(),
-      ...orderData,
-      createdAt: new Date()
-    };
+  // Create a new order
+  async createOrder(order: {
+    userId: string;
+    productName: string;
+    plan: string;
+    status: 'Active' | 'Expired' | 'Pending';
+  }) {
+    const orderId = uuidv4();
+    
+    await db.insert(orders).values({
+      orderId,
+      customerId: order.userId,
+      status: order.status,
+      createDate: new Date()
+    });
 
-    // In a real application, this would be saved to a database
-    // For now, we'll just return the order object
-    return order;
+    return { id: orderId };
   }
 
   // Get user by phone number
@@ -609,5 +585,45 @@ export class UserRepository {
       incidents: formattedIncidents,
       invoices: formattedInvoices,
     };
+  }
+
+  // Get user's active orders
+  async getActiveOrders(userId: string) {
+    const userOrders = await db
+      .select({
+        orderId: orders.orderId,
+        status: orders.status,
+        createDate: orders.createDate,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.customerId, userId),
+          eq(orders.status, 'Active'),
+          sql`${orders.orderId} IS NOT NULL`
+        )
+      );
+
+    return userOrders;
+  }
+
+  // Get user's expired orders
+  async getExpiredOrders(userId: string) {
+    const userOrders = await db
+      .select({
+        orderId: orders.orderId,
+        status: orders.status,
+        createDate: orders.createDate,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.customerId, userId),
+          eq(orders.status, 'Expired'),
+          sql`${orders.orderId} IS NOT NULL`
+        )
+      );
+
+    return userOrders;
   }
 }

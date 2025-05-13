@@ -100,7 +100,7 @@
 import { pgTable, serial, varchar, text, timestamp, pgEnum, integer, numeric, boolean, jsonb } from 'drizzle-orm/pg-core';
 
 // Create enums for statuses
-export const orderStatusEnum = pgEnum('order_status', ['InProgress', 'Completed', 'Pending']);
+export const orderStatusEnum = pgEnum('order_status', ['Active', 'Expired', 'Pending']);
 export const incidentStatusEnum = pgEnum('incident_status', ['Open', 'Pending', 'Resolved']);
 
 // Contacts table (from Contact Table image)
@@ -263,5 +263,21 @@ export const authUsers = pgTable('auth_users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   password: varchar('password', { length: 255 }).notNull(), // Will store hashed passwords
   customerId: varchar('customer_id', { length: 36 }).references(() => customers.customerId),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Offers table
+export const offers = pgTable('offers', {
+  id: serial('id').primaryKey(),
+  userId: serial('user_id').references(() => users.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  discountPercentage: varchar('discount_percentage', { length: 10 }).notNull(),
+  productType: varchar('product_type', { length: 50 }).notNull(),
+  planType: varchar('plan_type', { length: 50 }).notNull(),
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date').notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  conditions: jsonb('conditions'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

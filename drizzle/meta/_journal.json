@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1743436365083,
+      "tag": "0000_round_meggan",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1743704621130,
+      "tag": "0001_flashy_princess_powerful",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1743705507862,
+      "tag": "0002_futuristic_maria_hill",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1743706772067,
+      "tag": "0003_fearless_mother_askani",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1744871706007,
+      "tag": "0004_greedy_dark_phoenix",
+      "breakpoints": true
+    }
+  ]
+}

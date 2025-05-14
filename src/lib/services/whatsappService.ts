@@ -73,34 +73,22 @@ interface TwilioError extends Error {
 export class WhatsAppService {
   static async sendMessage(to: string, message: string) {
     try {
-      // Get the correct WhatsApp number to use
-      const whatsappNumber = whatsappConfig.getWhatsAppNumber();
-      
-      console.log('WhatsApp Service - Attempting to send message:', {
-        to,
-        whatsappNumber,
-        messageLength: message.length,
-        hasWhatsappNumber: !!whatsappNumber
-      });
-
-      if (!whatsappNumber) {
-        throw new Error('WhatsApp number is not configured');
-      }
-
       // Format the numbers correctly for Twilio
       const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-      const formattedFrom = whatsappNumber.startsWith('whatsapp:') ? whatsappNumber : `whatsapp:${whatsappNumber}`;
       
+      // Use the exact sandbox number from the webhook logs
+      const sandboxNumber = 'whatsapp:+14155238886';
+
       console.log('Sending WhatsApp message:', {
         to: formattedTo,
-        from: formattedFrom,
+        from: sandboxNumber,
         message: message.length > 50 ? `${message.substring(0, 50)}...` : message
       });
 
       // Create the message with proper parameters
       const response = await twilioClient.messages.create({
         body: message,
-        from: formattedFrom,
+        from: sandboxNumber,
         to: formattedTo
       });
       
@@ -109,22 +97,18 @@ export class WhatsAppService {
     } catch (error) {
       console.error('Error sending WhatsApp message:', error);
       
-      // If the first attempt fails with the standard format, try the alternative sandbox format
+      // If the first attempt fails, try with a different format
       const twilioError = error as TwilioError;
-      if (twilioError.code === 63007 && !to.startsWith('whatsapp:')) {
-        console.log('Trying alternative sandbox number format...');
+      if (twilioError.code === 63007) {
+        console.log('Trying with different format...');
         try {
-          // For sandbox, sometimes the from number needs to be exactly as specified in Twilio console
-          const sandboxNumber = 'whatsapp:+14155238886';
-          const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-          
           const response = await twilioClient.messages.create({
             body: message,
-            from: sandboxNumber,
-            to: formattedTo
+            from: 'whatsapp:+14155238886',
+            to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`
           });
           
-          console.log('Message sent successfully with alternative format:', response.sid);
+          console.log('Message sent successfully with different format:', response.sid);
           return response;
         } catch (altError) {
           console.error('Error with alternative format:', altError);

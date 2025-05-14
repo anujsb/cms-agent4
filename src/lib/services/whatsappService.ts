@@ -14,13 +14,25 @@ const twilioClient = new Twilio(accountSid, authToken);
 export class WhatsAppService {
   static async sendMessage(to: string, message: string) {
     try {
+      const whatsappNumber = whatsappConfig.getWhatsAppNumber();
+      
+      if (!whatsappNumber) {
+        throw new Error('WhatsApp number not configured');
+      }
+
+      console.log('Sending WhatsApp message:', {
+        to: `whatsapp:${to}`,
+        from: `whatsapp:${whatsappNumber}`,
+        message
+      });
+
       const response = await twilioClient.messages.create({
         body: message,
-        from: `whatsapp:${whatsappConfig.getWhatsAppNumber()}`,
+        from: `whatsapp:${whatsappNumber}`,
         to: `whatsapp:${to}`
       });
       
-      console.log('Message sent:', response.sid);
+      console.log('Message sent successfully:', response.sid);
       return response;
     } catch (error) {
       console.error('Error sending WhatsApp message:', error);

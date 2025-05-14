@@ -45,14 +45,31 @@ export class WhatsAppService {
         message
       });
 
-      const response = await twilioClient.messages.create({
-        body: message,
-        from: formattedFrom,
-        to: formattedTo
-      });
-      
-      console.log('Message sent successfully:', response.sid);
-      return response;
+      // First, try to send with the sandbox number
+      try {
+        const response = await twilioClient.messages.create({
+          body: message,
+          from: formattedFrom,
+          to: formattedTo
+        });
+        
+        console.log('Message sent successfully:', response.sid);
+        return response;
+      } catch (error: any) {
+        // If that fails, try with the alternative format
+        if (error.code === 63007) {
+          console.log('Trying alternative sandbox number format...');
+          const response = await twilioClient.messages.create({
+            body: message,
+            from: 'whatsapp:+14155238886',
+            to: formattedTo
+          });
+          
+          console.log('Message sent successfully with alternative format:', response.sid);
+          return response;
+        }
+        throw error;
+      }
     } catch (error) {
       console.error('Error sending WhatsApp message:', error);
       throw error;

@@ -151,31 +151,46 @@ if (!accountSid || !authToken) {
 
 const twilioClient = new Twilio(accountSid, authToken);
 
-// Helper function to determine the correct "From" number
-const getFromNumber = () => {
-  // For test accounts, we must use the exact sandbox number format
-  return 'whatsapp:+14155238886';
+// Helper function to format phone numbers for Twilio WhatsApp
+const formatPhoneNumber = (number: string) => {
+  // Remove any existing 'whatsapp:' prefix
+  const cleanNumber = number.replace('whatsapp:', '');
+  // Ensure number starts with '+'
+  const formattedNumber = cleanNumber.startsWith('+') ? cleanNumber : `+${cleanNumber}`;
+  return `whatsapp:${formattedNumber}`;
 };
 
 export class WhatsAppService {
   static async sendMessage(to: string, message: string) {
     try {
-      // Format destination number
-      const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-      
-      // Get the sandbox number
-      const fromValue = getFromNumber();
+      // Format numbers according to Twilio's requirements
+      const formattedTo = formatPhoneNumber(to);
+      const formattedFrom = 'whatsapp:+14155238886'; // Sandbox number
       
       console.log('Preparing WhatsApp message:', {
         to: formattedTo,
-        from: fromValue,
+        from: formattedFrom,
         messagePreview: message.length > 30 ? `${message.substring(0, 30)}...` : message
       });
 
-      // Send the message with minimal parameters for test account
+      // First, check if the user has joined the sandbox
+      try {
+        await twilioClient.messages.create({
+          body: '.', // Minimal message to test sandbox access
+          from: formattedFrom,
+          to: formattedTo
+        });
+      } catch (error: any) {
+        if (error.code === 21214) {
+          throw new Error('Please join the WhatsApp sandbox by sending "join <your-sandbox-code>" to +14155238886');
+        }
+        // If it's not a sandbox access error, continue with the actual message
+      }
+
+      // Send the actual message
       const response = await twilioClient.messages.create({
         body: message,
-        from: fromValue,
+        from: formattedFrom,
         to: formattedTo
       });
       
@@ -193,9 +208,11 @@ export class WhatsAppService {
         moreInfo: error.moreInfo
       });
       
-      // For test accounts, we need to ensure the user has joined the sandbox
+      // Handle specific error cases
       if (error.code === 21214) {
         throw new Error('Please join the WhatsApp sandbox by sending "join <your-sandbox-code>" to +14155238886');
+      } else if (error.code === 63007) {
+        throw new Error('WhatsApp sandbox configuration issue. Please ensure you have joined the sandbox and try again.');
       }
       
       throw error;
@@ -205,15 +222,13 @@ export class WhatsAppService {
   // Method to check if a number is registered in the sandbox
   static async checkNumberRegistration(phoneNumber: string) {
     try {
-      // Format the number
-      const formattedNumber = phoneNumber.startsWith('whatsapp:') 
-        ? phoneNumber 
-        : `whatsapp:${phoneNumber}`;
+      const formattedNumber = formatPhoneNumber(phoneNumber);
+      const formattedFrom = 'whatsapp:+14155238886';
       
-      // For test accounts, we can only check by attempting to send a message
+      // Try to send a minimal message to check registration
       const verificationResponse = await twilioClient.messages.create({
-        body: '.',  // Minimal message
-        from: getFromNumber(),
+        body: '.',
+        from: formattedFrom,
         to: formattedNumber
       });
       

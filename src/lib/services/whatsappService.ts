@@ -64,6 +64,12 @@ if (!accountSid || !authToken) {
 
 const twilioClient = new Twilio(accountSid, authToken);
 
+interface TwilioError extends Error {
+  code?: number;
+  status?: number;
+  moreInfo?: string;
+}
+
 export class WhatsAppService {
   static async sendMessage(to: string, message: string) {
     try {
@@ -104,7 +110,8 @@ export class WhatsAppService {
       console.error('Error sending WhatsApp message:', error);
       
       // If the first attempt fails with the standard format, try the alternative sandbox format
-      if (error.code === 63007 && !to.startsWith('whatsapp:')) {
+      const twilioError = error as TwilioError;
+      if (twilioError.code === 63007 && !to.startsWith('whatsapp:')) {
         console.log('Trying alternative sandbox number format...');
         try {
           // For sandbox, sometimes the from number needs to be exactly as specified in Twilio console

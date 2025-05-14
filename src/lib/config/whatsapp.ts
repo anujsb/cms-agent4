@@ -11,7 +11,8 @@ export const whatsappConfig = {
       NODE_ENV: process.env.NODE_ENV
     });
     
-    const number = this.isProduction ? this.productionNumber : this.sandboxNumber;
+    // Use sandbox number if production number is not set
+    const number = (this.isProduction && this.productionNumber) ? this.productionNumber : this.sandboxNumber;
     console.log('Selected WhatsApp number:', number);
     return number;
   }

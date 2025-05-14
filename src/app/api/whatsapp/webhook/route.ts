@@ -4,10 +4,12 @@ import { handleWhatsAppMessage } from '@/lib/utils/messageHandler';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // Parse form-urlencoded data
+    const formData = await req.formData();
+    const body = Object.fromEntries(formData.entries()) as Record<string, string>;
     
     // Log the full request body for debugging
-    console.log('Received WhatsApp webhook:', JSON.stringify(body, null, 2));
+    console.log('Received WhatsApp webhook:', body);
 
     // Handle sandbox verification
     if (body.type === 'verification') {

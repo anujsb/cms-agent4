@@ -34,16 +34,21 @@ export class WhatsAppService {
         throw new Error('WhatsApp number not configured');
       }
 
+      // Format the numbers correctly for Twilio
+      const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
+      // Use the exact Twilio sandbox number format
+      const formattedFrom = 'whatsapp:+14155238886';
+
       console.log('Sending WhatsApp message:', {
-        to: `whatsapp:${to}`,
-        from: `whatsapp:${whatsappNumber}`,
+        to: formattedTo,
+        from: formattedFrom,
         message
       });
 
       const response = await twilioClient.messages.create({
         body: message,
-        from: `whatsapp:${whatsappNumber}`,
-        to: `whatsapp:${to}`
+        from: formattedFrom,
+        to: formattedTo
       });
       
       console.log('Message sent successfully:', response.sid);

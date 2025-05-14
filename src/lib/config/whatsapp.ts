@@ -4,6 +4,15 @@ export const whatsappConfig = {
   productionNumber: process.env.TWILIO_WHATSAPP_PRODUCTION_NUMBER,
   
   getWhatsAppNumber() {
-    return this.isProduction ? this.productionNumber : this.sandboxNumber;
+    console.log('WhatsApp Config:', {
+      isProduction: this.isProduction,
+      sandboxNumber: this.sandboxNumber,
+      productionNumber: this.productionNumber,
+      NODE_ENV: process.env.NODE_ENV
+    });
+    
+    const number = this.isProduction ? this.productionNumber : this.sandboxNumber;
+    console.log('Selected WhatsApp number:', number);
+    return number;
   }
 };
